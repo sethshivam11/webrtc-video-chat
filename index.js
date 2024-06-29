@@ -1,13 +1,16 @@
 const express = require("express");
+const { createServer } = require("http");
 const bodyParser = require("body-parser");
 const { Server } = require("socket.io");
 
-const io = new Server({
-  cors: true,
-});
 const app = express();
 
 app.use(bodyParser.json());
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  cors: true,
+});
 
 const emailIdSocketMapping = new Map();
 const socketToEmailMapping = new Map();
@@ -31,18 +34,17 @@ io.on("connection", (socket) => {
     socket.to(socketId).emit("incoming-call", {
       from: fromEmail,
       offer,
-    })
+    });
   });
 
   socket.on("call-accepted", (data) => {
-    const {emailId, ans} = data;
+    const { emailId, ans } = data;
     const socketId = emailIdSocketMapping.get(emailId);
-    socket.to(socketId).emit("call-accepted", {ans});
-})
+    socket.to(socketId).emit("call-accepted", { ans });
+  });
 });
 
-app.listen(3000, () => console.log("HTTP Server started on port 3000"));
-io.listen(3001);
+httpServer.listen(3000, () => console.log("HTTP Server started on port 3000"));
 
 // ------------------------------- deployment --------------------------------
 
