@@ -26,10 +26,10 @@ const Homepage = () => {
     <div className="homepage-container">
       <div className="input-container">
         <input
-          type="email"
+          type="name"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
+          placeholder="Enter your name"
         />
         <input
           type="text"

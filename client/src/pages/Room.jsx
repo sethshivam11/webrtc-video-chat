@@ -17,11 +17,11 @@ const RoomPage = () => {
   const [myStream, setMyStream] = React.useState(null);
   const [remoteEmailId, setRemoteEmailId] = React.useState("");
   const [callAccepted, setCallAccepted] = React.useState(false);
+  const [sendingStream, setSendingStream] = React.useState(false);
 
   const handleNewUserJoined = useCallback(
     async (data) => {
       const { emailId } = data;
-      console.log("New user joined room: ", emailId);
       const offer = await createOffer();
       socket.emit("call-user", { emailId, offer });
       setRemoteEmailId(emailId);
@@ -32,7 +32,6 @@ const RoomPage = () => {
   const handleIncomingCall = useCallback(
     async (data) => {
       const { from, offer } = data;
-      console.log("Incoming call from: ", from, offer);
       const ans = await createAnswer(offer);
       setCallAccepted(true);
       socket.emit("call-accepted", { emailId: from, ans });
@@ -43,7 +42,6 @@ const RoomPage = () => {
 
   const handleCallAccepted = useCallback(async (data) => {
     const { ans } = data;
-    console.log("Call got accepted", ans);
     await setRemoteAnswer(ans);
   }, []);
 
@@ -70,18 +68,34 @@ const RoomPage = () => {
   }, [socket, handleNewUserJoined, handleCallAccepted, handleIncomingCall]);
 
   const handleNegotiation = useCallback(async () => {
-    console.log("Negotiation needed");
     const localOffer = await peer.createOffer();
     await peer.setLocalDescription(localOffer);
     socket.emit("call-user", { emailId: remoteEmailId, offer: localOffer });
+    sendStream(myStream);
+    setSendingStream(true);
   }, [peer.localDescription, remoteEmailId, socket]);
+
+  const handleDisconnection = useCallback((event) => {
+    if (event.target.connectionState === "disconnected") {
+      setRemoteEmailId("");
+    }
+  });
 
   useEffect(() => {
     peer.onnegotiationneeded = handleNegotiation;
+    peer.onconnectionstatechange = handleDisconnection;
+    getUserMediaStream();
     return () => {
       peer.removeEventListener("negotiationneeded", handleNegotiation);
     };
-  }, [peer, handleNegotiation]);
+  }, [peer, handleNegotiation, handleDisconnection]);
+
+  useEffect(() => {
+    if (myStream && remoteStream && !sendingStream) {
+      sendStream(myStream);
+      setSendingStream(true);
+    }
+  }, [sendStream, remoteStream, sendingStream]);
 
   return (
     <div className="roompage-container">
@@ -94,21 +108,15 @@ const RoomPage = () => {
           <span style={{ color: "red" }}>You are not connected</span>
         )}
       </h4>
-      {myStream ? (
-        remoteEmailId ? (
-          <>
-            <button onClick={(e) => sendStream(myStream)}>
-              {callAccepted ? "Accept" : "Call"}
-            </button>
-            <button style={{ background: "red" }} onClick={endCall}>
-              End
-            </button>
-          </>
-        ) : (
-          ""
-        )
+      {remoteEmailId && !sendingStream ? (
+        <button onClick={() => sendStream(myStream)}>Connect</button>
       ) : (
-        <button onClick={() => getUserMediaStream()}>Start</button>
+        !callAccepted && "Waiting for connection..."
+      )}
+      {callAccepted && remoteStream && (
+        <button style={{ background: "red" }} onClick={endCall}>
+          End
+        </button>
       )}
       <div className="both-video-container">
         <ReactPlayer
