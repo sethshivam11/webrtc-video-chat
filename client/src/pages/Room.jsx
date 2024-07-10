@@ -12,7 +12,7 @@ const RoomPage = () => {
     setRemoteAnswer,
     sendStream,
     remoteStream,
-    endCall
+    endCall,
   } = usePeer();
   const [myStream, setMyStream] = React.useState(null);
   const [remoteEmailId, setRemoteEmailId] = React.useState("");
@@ -100,7 +100,9 @@ const RoomPage = () => {
             <button onClick={(e) => sendStream(myStream)}>
               {callAccepted ? "Accept" : "Call"}
             </button>
-            <button style={{background: "red"}} onClick={endCall}>End</button>
+            <button style={{ background: "red" }} onClick={endCall}>
+              End
+            </button>
           </>
         ) : (
           ""
@@ -115,12 +117,14 @@ const RoomPage = () => {
           muted
           className="self-video"
           width="200px"
+          playsinline
         />
         <ReactPlayer
           url={remoteStream}
           playing
           className="remote-video"
           width="100%"
+          playsinline
         />
       </div>
     </div>
